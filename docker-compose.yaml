@@ -132,7 +132,7 @@ services:
 
       # Plugins
       PLUGIN_REMOTE_INSTALL_HOST: plugin_daemon
-      PLUGIN_REMOTE_INSTALL_PORT: 5003
+      PLUGIN_REMOTE_INSTALL_PORT: 5002
       PLUGIN_MAX_PACKAGE_SIZE: 52428800
       INNER_API_KEY_FOR_PLUGIN: vpXGkgLM3IKVunebaO5J70AmN+/sW7Vh+BdkrOEzhGp7SJHgEqTA5XwE
 
@@ -578,6 +578,7 @@ services:
       db:
         condition: service_healthy
     ports:
+      - "5002:5002"
       - "5003:5003"
     volumes:
       - ./docker/volumes/plugin_daemon:/app/storage
