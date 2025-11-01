@@ -14,13 +14,14 @@ services:
     image: langgenius/dify-api:1.9.2
     restart: always
     environment:
-      # URLs
+      # URLs - Public HTTPS URLs for generating links sent to users
       CONSOLE_API_URL: https://dify.lucasnextgen.com
       CONSOLE_WEB_URL: https://dify.lucasnextgen.com
       SERVICE_API_URL: https://dify.lucasnextgen.com
       APP_API_URL: https://dify.lucasnextgen.com
       APP_WEB_URL: https://dify.lucasnextgen.com
       FILES_URL: https://dify.lucasnextgen.com
+      # Internal URL for backend-to-backend communication
       INTERNAL_FILES_URL: http://api:5001
 
       # Common
@@ -162,13 +163,14 @@ services:
     image: langgenius/dify-api:1.9.2
     restart: always
     environment:
-      # URLs
+      # URLs - Public HTTPS URLs for generating links sent to users
       CONSOLE_API_URL: https://dify.lucasnextgen.com
       CONSOLE_WEB_URL: https://dify.lucasnextgen.com
       SERVICE_API_URL: https://dify.lucasnextgen.com
       APP_API_URL: https://dify.lucasnextgen.com
       APP_WEB_URL: https://dify.lucasnextgen.com
       FILES_URL: https://dify.lucasnextgen.com
+      # Internal URL for backend-to-backend communication
       INTERNAL_FILES_URL: http://api:5001
 
       # Common
@@ -308,13 +310,14 @@ services:
     image: langgenius/dify-api:1.9.2
     restart: always
     environment:
-      # URLs
+      # URLs - Public HTTPS URLs for generating links sent to users
       CONSOLE_API_URL: https://dify.lucasnextgen.com
       CONSOLE_WEB_URL: https://dify.lucasnextgen.com
       SERVICE_API_URL: https://dify.lucasnextgen.com
       APP_API_URL: https://dify.lucasnextgen.com
       APP_WEB_URL: https://dify.lucasnextgen.com
       FILES_URL: https://dify.lucasnextgen.com
+      # Internal URL for backend-to-backend communication
       INTERNAL_FILES_URL: http://api:5001
 
       # Common
@@ -553,13 +556,13 @@ services:
     image: langgenius/dify-plugin-daemon:0.3.3-local
     restart: always
     environment:
-      # URLs
-      CONSOLE_API_URL: https://dify.lucasnextgen.com
-      CONSOLE_WEB_URL: https://dify.lucasnextgen.com
-      SERVICE_API_URL: https://dify.lucasnextgen.com
-      APP_API_URL: https://dify.lucasnextgen.com
-      APP_WEB_URL: https://dify.lucasnextgen.com
-      FILES_URL: https://dify.lucasnextgen.com
+      # URLs - using internal HTTP for backend communication
+      CONSOLE_API_URL: http://nginx
+      CONSOLE_WEB_URL: http://nginx
+      SERVICE_API_URL: http://nginx
+      APP_API_URL: http://nginx
+      APP_WEB_URL: http://nginx
+      FILES_URL: http://nginx
       INTERNAL_FILES_URL: http://api:5001
 
       # Database
