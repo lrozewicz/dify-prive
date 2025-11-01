@@ -15,46 +15,115 @@ x-shared-env: &shared-api-worker-env
   FILES_URL: ""
   INTERNAL_FILES_URL: ""
 
-  # Server Configuration - stałe wartości
+  # Locale and Encoding
+  LANG: en_US.UTF-8
+  LC_ALL: en_US.UTF-8
+  PYTHONIOENCODING: utf-8
+
+  # Logging
   LOG_LEVEL: INFO
+  LOG_FILE: /app/logs/server.log
+  LOG_FILE_MAX_SIZE: 20
+  LOG_FILE_BACKUP_COUNT: 5
+  LOG_DATEFORMAT: "%Y-%m-%d %H:%M:%S"
+  LOG_TZ: UTC
+
+  # Server Configuration
   DEBUG: "false"
   FLASK_DEBUG: "false"
+  ENABLE_REQUEST_LOGGING: "False"
+  DEPLOY_ENV: PRODUCTION
+  DIFY_BIND_ADDRESS: 0.0.0.0
+  DIFY_PORT: 5001
 
-  # SEKRETY - z Portainer UI
+  # Migration
+  MIGRATION_ENABLED: "true"
+
+  # Security
   SECRET_KEY: ${SECRET_KEY}
+  INIT_PASSWORD: ""
+  COOKIE_DOMAIN: ""
+  NEXT_PUBLIC_COOKIE_DOMAIN: ""
 
-  # Database - stałe + sekret
+  # CORS
+  CONSOLE_CORS_ALLOW_ORIGINS: "*"
+
+  # Tokens and Sessions
+  ACCESS_TOKEN_EXPIRE_MINUTES: 60
+  REFRESH_TOKEN_EXPIRE_DAYS: 30
+  FILES_ACCESS_TIMEOUT: 300
+
+  # App Limits
+  APP_MAX_ACTIVE_REQUESTS: 0
+  APP_MAX_EXECUTION_TIME: 1200
+
+  # Server Workers
+  SERVER_WORKER_AMOUNT: 1
+  SERVER_WORKER_CLASS: gevent
+  SERVER_WORKER_CONNECTIONS: 10
+  GUNICORN_TIMEOUT: 360
+
+  # Celery Workers
+  CELERY_WORKER_CLASS: ""
+  CELERY_WORKER_AMOUNT: ""
+  CELERY_AUTO_SCALE: "false"
+  CELERY_MAX_WORKERS: ""
+  CELERY_MIN_WORKERS: ""
+
+  # API Tools
+  API_TOOL_DEFAULT_CONNECT_TIMEOUT: 10
+  API_TOOL_DEFAULT_READ_TIMEOUT: 60
+
+  # Website Extractors
+  ENABLE_WEBSITE_JINAREADER: "true"
+  ENABLE_WEBSITE_FIRECRAWL: "true"
+  ENABLE_WEBSITE_WATERCRAWL: "true"
+
+  # Features
+  NEXT_PUBLIC_ENABLE_SINGLE_DOLLAR_LATEX: "false"
+  CHECK_UPDATE_URL: https://updates.dify.ai
+  OPENAI_API_BASE: https://api.openai.com/v1
+
+  # Database Configuration
   DB_USERNAME: postgres
   DB_HOST: db
   DB_PORT: 5432
   DB_DATABASE: dify
-  # SEKRET:
   DB_PASSWORD: ${DB_PASSWORD}
+  SQLALCHEMY_POOL_SIZE: 30
+  SQLALCHEMY_MAX_OVERFLOW: 10
+  SQLALCHEMY_POOL_RECYCLE: 3600
+  SQLALCHEMY_ECHO: "false"
+  SQLALCHEMY_POOL_PRE_PING: "false"
+  SQLALCHEMY_POOL_USE_LIFO: "false"
+  SQLALCHEMY_POOL_TIMEOUT: 30
 
-  # Redis - stałe + sekret
+  # Redis Configuration
   REDIS_HOST: redis
   REDIS_PORT: 6379
   REDIS_DB: 0
-  # SEKRET:
   REDIS_PASSWORD: ${REDIS_PASSWORD}
+  REDIS_USE_SSL: "false"
+  REDIS_USERNAME: ""
 
-  # Celery - używa hasła Redis
+  # Celery Broker
+  CELERY_BACKEND: redis
   CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+  BROKER_USE_SSL: "false"
 
-  # Storage - lokalne pliki
+  # Storage Configuration
   STORAGE_TYPE: opendal
+  STORAGE_LOCAL_PATH: storage
   OPENDAL_SCHEME: fs
   OPENDAL_FS_ROOT: storage
 
   # Vector Store - Weaviate
   VECTOR_STORE: weaviate
   WEAVIATE_ENDPOINT: http://weaviate:8080
-  # SEKRET:
   WEAVIATE_API_KEY: ${WEAVIATE_API_KEY}
 
-  # Sandbox
+  # Code Execution (Sandbox)
   CODE_EXECUTION_ENDPOINT: http://sandbox:8194
-  # SEKRET:
   CODE_EXECUTION_API_KEY: ${CODE_EXECUTION_API_KEY}
 
   # SSRF Proxy
@@ -146,9 +215,16 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_DB: dify
       PGDATA: /var/lib/postgresql/data/pgdata
-      POSTGRES_MAX_CONNECTIONS: 100
       # SEKRET:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+    command: >
+      postgres -c 'max_connections=100'
+               -c 'shared_buffers=128MB'
+               -c 'work_mem=4MB'
+               -c 'maintenance_work_mem=64MB'
+               -c 'effective_cache_size=4096MB'
+               -c 'statement_timeout=0'
+               -c 'idle_in_transaction_session_timeout=0'
     volumes:
       - ./volumes/db/data:/var/lib/postgresql/data
     healthcheck:
@@ -203,10 +279,39 @@ services:
     image: langgenius/dify-plugin-daemon:0.3.3-local
     restart: always
     environment:
+      # Shared environment (inherited)
+      <<: *shared-api-worker-env
+
+      # Override DB_DATABASE for plugin daemon (uses separate database)
+      DB_DATABASE: dify_plugin
+
+      # Server Configuration
+      SERVER_PORT: 5002
+      SERVER_KEY: ${PLUGIN_DAEMON_KEY}
+
+      # Dify Inner API
       DIFY_INNER_API_URL: http://api:5001
-      # SEKRETY:
-      SECRET_KEY: ${PLUGIN_DAEMON_KEY}
       DIFY_INNER_API_KEY: ${PLUGIN_DIFY_INNER_API_KEY}
+
+      # Plugin Configuration
+      MAX_PLUGIN_PACKAGE_SIZE: 52428800
+      PPROF_ENABLED: "false"
+      PLUGIN_REMOTE_INSTALLING_HOST: 0.0.0.0
+      PLUGIN_REMOTE_INSTALLING_PORT: 5003
+      PLUGIN_WORKING_PATH: /app/storage/cwd
+      FORCE_VERIFYING_SIGNATURE: "true"
+      PYTHON_ENV_INIT_TIMEOUT: 120
+      PLUGIN_MAX_EXECUTION_TIMEOUT: 600
+      PLUGIN_STDIO_BUFFER_SIZE: 1024
+      PLUGIN_STDIO_MAX_BUFFER_SIZE: 5242880
+      PIP_MIRROR_URL: ""
+
+      # Plugin Storage
+      PLUGIN_STORAGE_TYPE: local
+      PLUGIN_STORAGE_LOCAL_ROOT: /app/storage
+      PLUGIN_INSTALLED_PATH: plugin
+      PLUGIN_PACKAGE_CACHE_PATH: plugin_packages
+      PLUGIN_MEDIA_CACHE_PATH: assets
     depends_on:
       db:
         condition: service_healthy
