@@ -433,14 +433,30 @@ services:
       POSTGRES_PASSWORD: d08b82088108d639dd2b2aadd9a12d87
       POSTGRES_DB: dify
       PGDATA: /var/lib/postgresql/data/pgdata
-    command: >
-      postgres -c 'max_connections=100'
-               -c 'shared_buffers=512MB'
-               -c 'work_mem=4MB'
-               -c 'maintenance_work_mem=64MB'
-               -c 'effective_cache_size=2GB'
-               -c 'statement_timeout=0'
-               -c 'idle_in_transaction_session_timeout=0'
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        # Create init script to create dify_plugin database
+        mkdir -p /docker-entrypoint-initdb.d
+        cat > /docker-entrypoint-initdb.d/01-create-plugin-db.sh <<'EOF'
+        #!/bin/sh
+        set -e
+        psql -v ON_ERROR_STOP=1 --username "$$POSTGRES_USER" --dbname "$$POSTGRES_DB" <<-EOSQL
+            SELECT 'CREATE DATABASE dify_plugin'
+            WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'dify_plugin')\gexec
+        EOSQL
+        EOF
+        chmod +x /docker-entrypoint-initdb.d/01-create-plugin-db.sh
+
+        # Run original entrypoint with postgres command
+        exec docker-entrypoint.sh postgres \
+          -c 'max_connections=100' \
+          -c 'shared_buffers=512MB' \
+          -c 'work_mem=4MB' \
+          -c 'maintenance_work_mem=64MB' \
+          -c 'effective_cache_size=2GB' \
+          -c 'statement_timeout=0' \
+          -c 'idle_in_transaction_session_timeout=0'
     volumes:
       - ./docker/volumes/db/data:/var/lib/postgresql/data
     healthcheck:
