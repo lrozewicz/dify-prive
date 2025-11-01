@@ -616,7 +616,7 @@ services:
 
   # ============================================================================
   # NGINX - SIMPLIFIED WITHOUT CUSTOM VOLUMES/ENTRYPOINT
-  # Using nginx:alpine with simple inline config
+  # Using nginx:alpine with inline config via entrypoint
   # ============================================================================
   nginx:
     image: nginx:alpine
@@ -626,11 +626,73 @@ services:
     depends_on:
       - api
       - web
-    volumes:
-      - nginx_config:/etc/nginx/conf.d:ro
-    configs:
-      - source: nginx_conf
-        target: /etc/nginx/conf.d/default.conf
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /etc/nginx/conf.d/default.conf <<'EOF'
+        upstream api_server {
+            server api:5001;
+            keepalive 32;
+        }
+        upstream web_server {
+            server web:3000;
+            keepalive 32;
+        }
+        server {
+            listen 80;
+            server_name _;
+            client_max_body_size 100M;
+            proxy_read_timeout 3600s;
+            proxy_send_timeout 3600s;
+            location /console/api {
+                proxy_pass http://api_server;
+                proxy_http_version 1.1;
+                proxy_set_header Connection "";
+                proxy_set_header Host $$host;
+                proxy_set_header X-Real-IP $$remote_addr;
+                proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $$scheme;
+            }
+            location /api {
+                proxy_pass http://api_server;
+                proxy_http_version 1.1;
+                proxy_set_header Connection "";
+                proxy_set_header Host $$host;
+                proxy_set_header X-Real-IP $$remote_addr;
+                proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $$scheme;
+            }
+            location /v1 {
+                proxy_pass http://api_server;
+                proxy_http_version 1.1;
+                proxy_set_header Connection "";
+                proxy_set_header Host $$host;
+                proxy_set_header X-Real-IP $$remote_addr;
+                proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $$scheme;
+            }
+            location /files {
+                proxy_pass http://api_server;
+                proxy_http_version 1.1;
+                proxy_set_header Connection "";
+                proxy_set_header Host $$host;
+                proxy_set_header X-Real-IP $$remote_addr;
+                proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $$scheme;
+            }
+            location / {
+                proxy_pass http://web_server;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $$http_upgrade;
+                proxy_set_header Connection "upgrade";
+                proxy_set_header Host $$host;
+                proxy_set_header X-Real-IP $$remote_addr;
+                proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $$scheme;
+            }
+        }
+        EOF
+        exec nginx -g 'daemon off;'
     deploy:
       resources:
         limits:
@@ -671,89 +733,6 @@ services:
         reservations:
           cpus: '0.5'
           memory: 768M
-
-# ==============================================================================
-# CONFIGS - Inline nginx configuration
-# ==============================================================================
-configs:
-  nginx_conf:
-    content: |
-      # Dify Nginx Configuration - Simplified for NPM SSL termination
-
-      upstream api_server {
-          server api:5001;
-          keepalive 32;
-      }
-
-      upstream web_server {
-          server web:3000;
-          keepalive 32;
-      }
-
-      server {
-          listen 80;
-          server_name _;
-
-          client_max_body_size 100M;
-          proxy_read_timeout 3600s;
-          proxy_send_timeout 3600s;
-
-          # API endpoints
-          location /console/api {
-              proxy_pass http://api_server;
-              proxy_http_version 1.1;
-              proxy_set_header Connection "";
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              proxy_set_header X-Forwarded-Proto $scheme;
-          }
-
-          location /api {
-              proxy_pass http://api_server;
-              proxy_http_version 1.1;
-              proxy_set_header Connection "";
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              proxy_set_header X-Forwarded-Proto $scheme;
-          }
-
-          location /v1 {
-              proxy_pass http://api_server;
-              proxy_http_version 1.1;
-              proxy_set_header Connection "";
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              proxy_set_header X-Forwarded-Proto $scheme;
-          }
-
-          location /files {
-              proxy_pass http://api_server;
-              proxy_http_version 1.1;
-              proxy_set_header Connection "";
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              proxy_set_header X-Forwarded-Proto $scheme;
-          }
-
-          # Web frontend
-          location / {
-              proxy_pass http://web_server;
-              proxy_http_version 1.1;
-              proxy_set_header Upgrade $http_upgrade;
-              proxy_set_header Connection "upgrade";
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              proxy_set_header X-Forwarded-Proto $scheme;
-          }
-      }
-
-volumes:
-  nginx_config:
 
 networks:
   ssrf_proxy_network:
