@@ -278,7 +278,7 @@ importers:
         version: 2.0.6(react@19.1.1)
       react-sortablejs:
         specifier: ^6.1.4
-        version: 6.1.4(@types/sortablejs@1.15.8)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(sortablejs@1.15.6)
+        version: 6.1.4(@types/sortablejs@1.15.9)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(sortablejs@1.15.6)
       react-syntax-highlighter:
         specifier: ^15.6.6
         version: 15.6.6(react@19.1.1)
@@ -440,8 +440,8 @@ importers:
         specifier: ^7.7.1
         version: 7.7.1
       '@types/sortablejs':
-        specifier: ^1.15.8
-        version: 1.15.8
+        specifier: ^1.15.9
+        version: 1.15.9
       '@types/uuid':
         specifier: ^10.0.0
         version: 10.0.0
@@ -3579,8 +3579,8 @@ packages:
   '@types/semver@7.7.1':
     resolution: {integrity: sha512-FmgJfu+MOcQ370SD0ev7EI8TlCAfKYU+B4m5T3yXc1CiRN94g/SZPtsCkk506aUDtlMnFZvasDwHHUcZUEaYuA==}
 
-  '@types/sortablejs@1.15.8':
-    resolution: {integrity: sha512-b79830lW+RZfwaztgs1aVPgbasJ8e7AXtZYHTELNXZPsERt4ymJdjV4OccDbHQAvHrCcFpbF78jkm0R6h/pZVg==}
+  '@types/sortablejs@1.15.9':
+    resolution: {integrity: sha512-7HP+rZGE2p886PKV9c9OJzLBI6BBJu1O7lJGYnPyG3fS4/duUCcngkNCjsLwIMV+WMqANe3tt4irrXHSIe68OQ==}
 
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
@@ -12163,7 +12163,7 @@ snapshots:
 
   '@types/semver@7.7.1': {}
 
-  '@types/sortablejs@1.15.8': {}
+  '@types/sortablejs@1.15.9': {}
 
   '@types/stack-utils@2.0.3': {}
 
@@ -16922,9 +16922,9 @@ snapshots:
       prop-types: 15.8.1
       react: 19.1.1
 
-  react-sortablejs@6.1.4(@types/sortablejs@1.15.8)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(sortablejs@1.15.6):
+  react-sortablejs@6.1.4(@types/sortablejs@1.15.9)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(sortablejs@1.15.6):
     dependencies:
-      '@types/sortablejs': 1.15.8
+      '@types/sortablejs': 1.15.9
       classnames: 2.3.1
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
