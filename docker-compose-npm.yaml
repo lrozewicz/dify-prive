@@ -221,13 +221,38 @@ services:
     restart: always
     volumes:
       - ./ssrf_proxy/squid.conf.template:/etc/squid/squid.conf.template
-      - ./ssrf_proxy/docker-entrypoint.sh:/docker-entrypoint-mount.sh
     entrypoint:
-      [
-        "sh",
-        "-c",
-        "cp /docker-entrypoint-mount.sh /docker-entrypoint.sh && sed -i 's/\r$$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh && /docker-entrypoint.sh",
-      ]
+      - /bin/bash
+      - -c
+      - |
+        # SSRF Proxy entrypoint - inline (bez external file)
+
+        echo "[ENTRYPOINT] re-create snakeoil self-signed certificate"
+        if [ ! -f /etc/ssl/private/ssl-cert-snakeoil.key ]; then
+            /usr/sbin/make-ssl-cert generate-default-snakeoil --force-overwrite > /dev/null 2>&1
+        fi
+
+        # Tail logs do stdout
+        tail -F /var/log/squid/access.log 2>/dev/null &
+        tail -F /var/log/squid/error.log 2>/dev/null &
+        tail -F /var/log/squid/store.log 2>/dev/null &
+        tail -F /var/log/squid/cache.log 2>/dev/null &
+
+        # Replace environment variables w template
+        echo "[ENTRYPOINT] replacing environment variables in the template"
+        awk '{
+            while(match($$0, /\$${[A-Za-z_][A-Za-z_0-9]*}/)) {
+                var = substr($$0, RSTART+2, RLENGTH-3)
+                val = ENVIRON[var]
+                $$0 = substr($$0, 1, RSTART-1) val substr($$0, RSTART+RLENGTH)
+            }
+            print
+        }' /etc/squid/squid.conf.template > /etc/squid/squid.conf
+
+        # Start squid
+        /usr/sbin/squid -Nz
+        echo "[ENTRYPOINT] starting squid"
+        exec /usr/sbin/squid -f /etc/squid/squid.conf -NYC 1
     environment:
       HTTP_PORT: 3128
       COREDUMP_DIR: /var/spool/squid
@@ -250,13 +275,24 @@ services:
       - ./nginx/proxy.conf.template:/etc/nginx/proxy.conf.template
       - ./nginx/https.conf.template:/etc/nginx/https.conf.template
       - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/docker-entrypoint.sh:/docker-entrypoint-mount.sh
     entrypoint:
-      [
-        "sh",
-        "-c",
-        "cp /docker-entrypoint-mount.sh /docker-entrypoint.sh && sed -i 's/\r$$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh && /docker-entrypoint.sh",
-      ]
+      - /bin/bash
+      - -c
+      - |
+        # Nginx entrypoint - inline (bez external file)
+        export HTTPS_CONFIG=''
+        export ACME_CHALLENGE_LOCATION=''
+
+        # Zbierz wszystkie zmienne środowiskowe
+        env_vars=$$(printenv | cut -d= -f1 | sed 's/^/$$/g' | paste -sd, -)
+
+        # Wygeneruj konfigurację z templates
+        envsubst "$$env_vars" < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+        envsubst "$$env_vars" < /etc/nginx/proxy.conf.template > /etc/nginx/proxy.conf
+        envsubst "$$env_vars" < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
+
+        # Uruchom nginx
+        exec nginx -g 'daemon off;'
     environment:
       NGINX_SERVER_NAME: _
       NGINX_HTTPS_ENABLED: "false"
