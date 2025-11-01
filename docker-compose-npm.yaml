@@ -1,0 +1,268 @@
+# ==================================================================
+# Docker Compose dla Dify z Nginx Proxy Manager
+# Zoptymalizowany - wystawia TYLKO port 8100, bez SSL
+# ==================================================================
+
+x-shared-env: &shared-api-worker-env
+  # Common Environment Variables
+  CONSOLE_API_URL: ${CONSOLE_API_URL:-}
+  CONSOLE_WEB_URL: ${CONSOLE_WEB_URL:-}
+  SERVICE_API_URL: ${SERVICE_API_URL:-}
+  APP_API_URL: ${APP_API_URL:-}
+  APP_WEB_URL: ${APP_WEB_URL:-}
+  FILES_URL: ${FILES_URL:-}
+  INTERNAL_FILES_URL: ${INTERNAL_FILES_URL:-}
+
+  # Server Configuration
+  SECRET_KEY: ${SECRET_KEY}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  DEBUG: ${DEBUG:-false}
+  FLASK_DEBUG: ${FLASK_DEBUG:-false}
+
+  # Database
+  DB_USERNAME: ${DB_USERNAME:-postgres}
+  DB_PASSWORD: ${DB_PASSWORD}
+  DB_HOST: ${DB_HOST:-db}
+  DB_PORT: ${DB_PORT:-5432}
+  DB_DATABASE: ${DB_DATABASE:-dify}
+
+  # Redis
+  REDIS_HOST: ${REDIS_HOST:-redis}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_PASSWORD: ${REDIS_PASSWORD}
+  REDIS_DB: ${REDIS_DB:-0}
+
+  # Celery
+  CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+
+  # Storage
+  STORAGE_TYPE: ${STORAGE_TYPE:-opendal}
+  OPENDAL_SCHEME: ${OPENDAL_SCHEME:-fs}
+  OPENDAL_FS_ROOT: ${OPENDAL_FS_ROOT:-storage}
+
+  # Vector Store
+  VECTOR_STORE: ${VECTOR_STORE:-weaviate}
+  WEAVIATE_ENDPOINT: ${WEAVIATE_ENDPOINT:-http://weaviate:8080}
+  WEAVIATE_API_KEY: ${WEAVIATE_API_KEY}
+
+  # Sandbox
+  CODE_EXECUTION_ENDPOINT: ${CODE_EXECUTION_ENDPOINT:-http://sandbox:8194}
+  CODE_EXECUTION_API_KEY: ${CODE_EXECUTION_API_KEY}
+
+  # SSRF Proxy
+  SSRF_PROXY_HTTP_URL: ${SSRF_PROXY_HTTP_URL:-http://ssrf_proxy:3128}
+  SSRF_PROXY_HTTPS_URL: ${SSRF_PROXY_HTTPS_URL:-http://ssrf_proxy:3128}
+
+services:
+  # API Service
+  api:
+    image: langgenius/dify-api:1.9.2
+    restart: always
+    environment:
+      <<: *shared-api-worker-env
+      MODE: api
+      PLUGIN_REMOTE_INSTALL_HOST: ${EXPOSE_PLUGIN_DEBUGGING_HOST:-localhost}
+      PLUGIN_REMOTE_INSTALL_PORT: ${EXPOSE_PLUGIN_DEBUGGING_PORT:-5003}
+      INNER_API_KEY_FOR_PLUGIN: ${PLUGIN_DIFY_INNER_API_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./volumes/app/storage:/app/api/storage
+    networks:
+      - ssrf_proxy_network
+      - default
+
+  # Worker Service
+  worker:
+    image: langgenius/dify-api:1.9.2
+    restart: always
+    environment:
+      <<: *shared-api-worker-env
+      MODE: worker
+      INNER_API_KEY_FOR_PLUGIN: ${PLUGIN_DIFY_INNER_API_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./volumes/app/storage:/app/api/storage
+    networks:
+      - ssrf_proxy_network
+      - default
+
+  # Worker Beat (Scheduler)
+  worker_beat:
+    image: langgenius/dify-api:1.9.2
+    restart: always
+    environment:
+      <<: *shared-api-worker-env
+      MODE: worker_beat
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./volumes/app/storage:/app/api/storage
+
+  # Web Service (Frontend)
+  web:
+    image: langgenius/dify-web:1.9.2
+    restart: always
+    environment:
+      CONSOLE_API_URL: ${CONSOLE_API_URL:-}
+      APP_API_URL: ${APP_API_URL:-}
+      NEXT_PUBLIC_COOKIE_DOMAIN: ${NEXT_PUBLIC_COOKIE_DOMAIN:-}
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE:-dify}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_MAX_CONNECTIONS: ${POSTGRES_MAX_CONNECTIONS:-100}
+    volumes:
+      - ./volumes/db/data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:6-alpine
+    restart: always
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - ./volumes/redis/data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Sandbox (Code Execution)
+  sandbox:
+    image: langgenius/dify-sandbox:0.2.10
+    restart: always
+    environment:
+      API_KEY: ${CODE_EXECUTION_API_KEY}
+      GIN_MODE: ${SANDBOX_GIN_MODE:-release}
+      WORKER_TIMEOUT: ${SANDBOX_WORKER_TIMEOUT:-15}
+      ENABLE_NETWORK: ${SANDBOX_ENABLE_NETWORK:-true}
+      HTTP_PROXY: ${SANDBOX_HTTP_PROXY:-http://ssrf_proxy:3128}
+      HTTPS_PROXY: ${SANDBOX_HTTPS_PROXY:-http://ssrf_proxy:3128}
+    volumes:
+      - ./volumes/sandbox/dependencies:/dependencies
+    networks:
+      - ssrf_proxy_network
+      - default
+
+  # Plugin Daemon
+  plugin_daemon:
+    image: langgenius/dify-plugin-daemon:1.9.2
+    restart: always
+    environment:
+      SECRET_KEY: ${PLUGIN_DAEMON_KEY}
+      DIFY_INNER_API_KEY: ${PLUGIN_DIFY_INNER_API_KEY}
+      DIFY_INNER_API_URL: ${PLUGIN_DIFY_INNER_API_URL:-http://api:5001}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./volumes/plugin_daemon:/app/storage
+
+  # SSRF Proxy
+  ssrf_proxy:
+    image: ubuntu/squid:latest
+    restart: always
+    volumes:
+      - ./ssrf_proxy/squid.conf.template:/etc/squid/squid.conf.template
+      - ./ssrf_proxy/docker-entrypoint.sh:/docker-entrypoint-mount.sh
+    entrypoint:
+      [
+        "sh",
+        "-c",
+        "cp /docker-entrypoint-mount.sh /docker-entrypoint.sh && sed -i 's/\r$$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh && /docker-entrypoint.sh",
+      ]
+    environment:
+      HTTP_PORT: ${SSRF_HTTP_PORT:-3128}
+      COREDUMP_DIR: ${SSRF_COREDUMP_DIR:-/var/spool/squid}
+      REVERSE_PROXY_PORT: ${SSRF_REVERSE_PROXY_PORT:-8194}
+      SANDBOX_HOST: ${SSRF_SANDBOX_HOST:-sandbox}
+      SANDBOX_PORT: ${SANDBOX_PORT:-8194}
+    networks:
+      - ssrf_proxy_network
+      - default
+
+  # Nginx (Reverse Proxy)
+  # Wystawiony TYLKO na port 8100 - bez SSL
+  # Nginx Proxy Manager obsługuje HTTPS
+  nginx:
+    image: nginx:latest
+    restart: always
+    volumes:
+      - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template
+      - ./nginx/proxy.conf.template:/etc/nginx/proxy.conf.template
+      - ./nginx/https.conf.template:/etc/nginx/https.conf.template
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/docker-entrypoint.sh:/docker-entrypoint-mount.sh
+    entrypoint:
+      [
+        "sh",
+        "-c",
+        "cp /docker-entrypoint-mount.sh /docker-entrypoint.sh && sed -i 's/\r$$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh && /docker-entrypoint.sh",
+      ]
+    environment:
+      NGINX_SERVER_NAME: ${NGINX_SERVER_NAME:-_}
+      NGINX_HTTPS_ENABLED: "false"
+      NGINX_PORT: ${NGINX_PORT:-80}
+      NGINX_WORKER_PROCESSES: ${NGINX_WORKER_PROCESSES:-auto}
+      NGINX_CLIENT_MAX_BODY_SIZE: ${NGINX_CLIENT_MAX_BODY_SIZE:-100M}
+      NGINX_KEEPALIVE_TIMEOUT: ${NGINX_KEEPALIVE_TIMEOUT:-65}
+      NGINX_PROXY_READ_TIMEOUT: ${NGINX_PROXY_READ_TIMEOUT:-3600s}
+      NGINX_PROXY_SEND_TIMEOUT: ${NGINX_PROXY_SEND_TIMEOUT:-3600s}
+    depends_on:
+      - api
+      - web
+    ports:
+      - "${EXPOSE_NGINX_PORT:-8100}:80"
+    # BRAK PORTU 443 - NPM obsługuje SSL!
+
+  # Weaviate (Vector Database)
+  weaviate:
+    image: semitechnologies/weaviate:1.27.0
+    restart: always
+    profiles:
+      - weaviate
+    volumes:
+      - ./volumes/weaviate:/var/lib/weaviate
+    environment:
+      PERSISTENCE_DATA_PATH: /var/lib/weaviate
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "false"
+      DEFAULT_VECTORIZER_MODULE: none
+      CLUSTER_HOSTNAME: node1
+      AUTHENTICATION_APIKEY_ENABLED: "true"
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: ${WEAVIATE_API_KEY}
+      AUTHENTICATION_APIKEY_USERS: hello@dify.ai
+      AUTHORIZATION_ADMINLIST_ENABLED: "true"
+      AUTHORIZATION_ADMINLIST_USERS: hello@dify.ai
+
+networks:
+  ssrf_proxy_network:
+    driver: bridge
+  default:
+    driver: bridge
