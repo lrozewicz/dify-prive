@@ -155,7 +155,7 @@ services:
 
   # Sandbox (Code Execution)
   sandbox:
-    image: langgenius/dify-sandbox:0.2.10
+    image: langgenius/dify-sandbox:0.2.12
     restart: always
     environment:
       API_KEY: ${CODE_EXECUTION_API_KEY}
@@ -172,7 +172,7 @@ services:
 
   # Plugin Daemon
   plugin_daemon:
-    image: langgenius/dify-plugin-daemon:1.9.2
+    image: langgenius/dify-plugin-daemon:0.3.3-local
     restart: always
     environment:
       SECRET_KEY: ${PLUGIN_DAEMON_KEY}
