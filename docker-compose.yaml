@@ -467,6 +467,8 @@ services:
       interval: 1s
       timeout: 3s
       retries: 60
+    networks:
+      - default
     deploy:
       resources:
         limits:
@@ -489,6 +491,8 @@ services:
     command: redis-server --requirepass 5650b9a6aeaa9378bb085486da1431c9 --maxmemory 512mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a 5650b9a6aeaa9378bb085486da1431c9 ping | grep -q PONG"]
+    networks:
+      - default
     deploy:
       resources:
         limits:
@@ -763,6 +767,8 @@ services:
         }
         EOF
         exec nginx -g 'daemon off;'
+    networks:
+      - default
     deploy:
       resources:
         limits:
@@ -795,6 +801,8 @@ services:
       AUTHORIZATION_ADMINLIST_USERS: hello@dify.ai
       LIMIT_RESOURCES: "true"
       GOMEMLIMIT: "1280MiB"
+    networks:
+      - default
     deploy:
       resources:
         limits:
