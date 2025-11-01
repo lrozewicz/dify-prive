@@ -1,0 +1,95 @@
+# Publish to Your Personal GitHub Repository
+
+<Card title="This Documentation is Being Deprecated" icon="circle-exclamation" href="/plugin-dev-en/0322-release-to-individual-github-repo">
+  <p>This page is being phased out as part of our documentation reorganization.</p>
+
+  <p><strong>Click this card</strong> to be redirected to the updated version with the most current information.</p>
+
+  <p>If you notice any discrepancies or areas needing improvement in the new documentation, please use the "Report an issue" button at the bottom of the page.</p>
+</Card>
+
+You can install plugins through GitHub repository links. After developing a plugin, you can choose to publish it to a public GitHub repository for others to download and use. This method offers the following advantages:
+
+• **Personal Management**: Complete control over plugin code and updates
+
+• **Quick Sharing**: Easily share with other users or team members via GitHub links for testing and use
+
+• **Collaboration and Feedback**: Open-sourcing your plugin may attract potential collaborators on GitHub who can help improve it quickly
+
+This guide will show you how to publish plugins to a GitHub repository.
+
+### **Prerequisites**
+
+* GitHub account
+* New public GitHub repository
+* Git tools installed locally
+
+For basic GitHub knowledge, please refer to [GitHub documentation](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository).
+
+### **1. Prepare Plugin Project**
+
+Publishing to public GitHub means your plugin will be open source. Ensure you've completed debugging and verification, and have a comprehensive `README.md` file.
+
+Recommended README contents:
+
+* Plugin introduction and feature description
+* Installation and configuration steps
+* Usage examples
+* Contact information or contribution guidelines
+
+### **2. Initialize Local Plugin Repository**
+
+Before publishing to GitHub, ensure debugging and verification are complete. Navigate to the plugin project folder in terminal and run:
+
+```bash  theme={"system"}
+git init
+git add .
+git commit -m "Initial commit: Add plugin files"
+```
+
+If this is your first time using Git, you may also need to configure your Git username and email:
+
+```bash  theme={"system"}
+git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"
+```
+
+### **3. Connect Remote Repository**
+
+Use this command to connect local repository to GitHub:
+
+```bash  theme={"system"}
+git remote add origin https://github.com/<your-username>/<repository-name>.git
+```
+
+### **4. Upload Plugin Files**
+
+Push project to GitHub repository:
+
+```bash  theme={"system"}
+git branch -M main
+git push -u origin main
+```
+
+Recommended to add tags for future packaging:
+
+```bash  theme={"system"}
+git tag -a v0.0.1 -m "Release version 0.0.1"
+git push origin v0.0.1
+```
+
+### **5. Package Plugin Code**
+
+Go to the Releases page of your GitHub repository and create a new release. Upload plugin files when publishing. For detailed instructions on packaging plugins, please read the packaging plugins documentation.
+
+![Packaging Plugins](https://assets-docs.dify.ai/2024/12/5cb4696348cc6903e380287fce8f529d.png)
+
+### **Installing Plugins via GitHub**
+
+Others can install the plugin using the GitHub repository address. Visit the Dify platform's plugin management page, choose to install via GitHub, enter the repository address, select version number and package file to complete installation.
+
+![](https://assets-docs.dify.ai/2024/12/3c2612349c67e6898a1f33a7cc320468.png)
+
+***
+
+[Edit this page](https://github.com/langgenius/dify-docs/edit/main/en/plugins/publish-plugins/publish-plugin-on-personal-github-repo.mdx) | [Report an issue](https://github.com/langgenius/dify-docs/issues/new?template=docs.yml)

@@ -1,0 +1,19 @@
+# Output
+
+## Introduction
+
+<Info>
+  * The Output node was previously called End. Unlike before, it's now optional in a workflow and is required only when you want to explicitly return data to the end user.
+
+  * This node is available in workflow applications only. Chatflows use [Answer nodes](/en/guides/workflow/node/answer) instead to deliver responses during the conversation flow.
+</Info>
+
+In an Output node, you can define what your workflow returns to the end user, such as an LLM's response.
+
+At least one output variable must be specified in an Output node; otherwise, nothing will be returned.
+
+When exposed as a backend service API, workflows without an Output node will not return any values to API callers.
+
+***
+
+[Edit this page](https://github.com/langgenius/dify-docs/edit/main/en/guides/workflow/node/end.mdx) | [Report an issue](https://github.com/langgenius/dify-docs/issues/new?template=docs.yml)

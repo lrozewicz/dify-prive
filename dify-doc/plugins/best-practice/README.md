@@ -1,0 +1,19 @@
+# Best Practice
+
+<Card title="This Documentation is Being Deprecated" icon="circle-exclamation" href="/plugin-dev-en/0431-example-overview-and-index">
+  <p>This page is being phased out as part of our documentation reorganization.</p>
+
+  <p><strong>Click this card</strong> to be redirected to the updated version with the most current information.</p>
+
+  <p>If you notice any discrepancies or areas needing improvement in the new documentation, please use the "Report an issue" button at the bottom of the page.</p>
+</Card>
+
+For more comprehensive best practices on developing plugins with advanced functionality, please refer to the extended plugin development guidelines.
+
+<Card title="Develop a Slack Bot Plugin" icon="link" href="./develop-a-slack-bot-plugin">
+  Gain a solid understanding of how to build a Slack Bot that’s powered by AI—one that can respond to user questions right inside Slack.
+</Card>
+
+***
+
+[Edit this page](https://github.com/langgenius/dify-docs/edit/main/en/plugins/best-practice/README.mdx) | [Report an issue](https://github.com/langgenius/dify-docs/issues/new?template=docs.yml)

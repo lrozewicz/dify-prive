@@ -1,0 +1,21 @@
+# Start
+
+Start nodes serve as the entry points for workflows and chatflows.
+
+There are two types of Start nodes, each initiating your application in a different way.
+
+* **[User Input](/en/guides/workflow/node/user-input)**: The application is initiated by direct user interaction or API calls.
+
+* **[Trigger](/en/guides/workflow/node/trigger)** (for workflows only): The application runs automatically on a schedule or in response to a specific third-party event.
+
+<Note>
+  Only applications that start with a User Input node can be published as standalone web apps or MCP servers, exposed through backend service APIs, or used as tools in other Dify applications.
+</Note>
+
+<Tip>
+  A single workflow can have both User Input nodes and triggers as parallel start points.
+</Tip>
+
+***
+
+[Edit this page](https://github.com/langgenius/dify-docs/edit/main/en/guides/workflow/node/start.mdx) | [Report an issue](https://github.com/langgenius/dify-docs/issues/new?template=docs.yml)
