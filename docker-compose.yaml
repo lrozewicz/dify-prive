@@ -131,9 +131,9 @@ services:
       SENTRY_TRACES_SAMPLE_RATE: 1.0
       SENTRY_PROFILES_SAMPLE_RATE: 1.0
 
-      # Plugins
+      # Plugins - using plugin_daemon service name instead of localhost for Docker networking
       PLUGIN_REMOTE_INSTALL_HOST: plugin_daemon
-      PLUGIN_REMOTE_INSTALL_PORT: 5002
+      PLUGIN_REMOTE_INSTALL_PORT: 5003
       PLUGIN_MAX_PACKAGE_SIZE: 52428800
       INNER_API_KEY_FOR_PLUGIN: vpXGkgLM3IKVunebaO5J70AmN+/sW7Vh+BdkrOEzhGp7SJHgEqTA5XwE
 
@@ -467,8 +467,6 @@ services:
       interval: 1s
       timeout: 3s
       retries: 60
-    networks:
-      - default
     deploy:
       resources:
         limits:
@@ -491,8 +489,6 @@ services:
     command: redis-server --requirepass 5650b9a6aeaa9378bb085486da1431c9 --maxmemory 512mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a 5650b9a6aeaa9378bb085486da1431c9 ping | grep -q PONG"]
-    networks:
-      - default
     deploy:
       resources:
         limits:
@@ -625,9 +621,6 @@ services:
       - "5003:5003"
     volumes:
       - ./docker/volumes/plugin_daemon:/app/storage
-    networks:
-      - ssrf_proxy_network
-      - default
     deploy:
       resources:
         limits:
@@ -767,8 +760,6 @@ services:
         }
         EOF
         exec nginx -g 'daemon off;'
-    networks:
-      - default
     deploy:
       resources:
         limits:
@@ -801,8 +792,6 @@ services:
       AUTHORIZATION_ADMINLIST_USERS: hello@dify.ai
       LIMIT_RESOURCES: "true"
       GOMEMLIMIT: "1280MiB"
-    networks:
-      - default
     deploy:
       resources:
         limits:
