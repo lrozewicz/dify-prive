@@ -496,7 +496,27 @@ services:
       PIP_MIRROR_URL: ""
     volumes:
       - ./docker/volumes/sandbox/dependencies:/dependencies
-      - ./docker/volumes/sandbox/conf:/conf
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        mkdir -p /conf
+        cat > /conf/config.yaml <<'EOF'
+        app:
+          port: 8194
+          debug: True
+          key: dify-sandbox
+        max_workers: 4
+        max_requests: 50
+        worker_timeout: 15
+        python_path: /usr/local/bin/python3
+        enable_network: True
+        allowed_syscalls:
+        proxy:
+          socks5: ''
+          http: 'http://ssrf_proxy:3128'
+          https: 'http://ssrf_proxy:3128'
+        EOF
+        exec /main
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8194/health"]
     networks:
@@ -627,6 +647,7 @@ services:
     depends_on:
       - api
       - web
+      - plugin_daemon
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -673,6 +694,35 @@ services:
                 proxy_set_header X-Forwarded-Proto $$scheme;
             }
             location /files {
+                proxy_pass http://api_server;
+                proxy_http_version 1.1;
+                proxy_set_header Connection "";
+                proxy_set_header Host $$host;
+                proxy_set_header X-Real-IP $$remote_addr;
+                proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $$scheme;
+            }
+            location /explore {
+                proxy_pass http://web_server;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $$http_upgrade;
+                proxy_set_header Connection "upgrade";
+                proxy_set_header Host $$host;
+                proxy_set_header X-Real-IP $$remote_addr;
+                proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $$scheme;
+            }
+            location /e/ {
+                proxy_pass http://plugin_daemon:5002;
+                proxy_http_version 1.1;
+                proxy_set_header Connection "";
+                proxy_set_header Host $$host;
+                proxy_set_header X-Real-IP $$remote_addr;
+                proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $$scheme;
+                proxy_set_header Dify-Hook-Url $$scheme://$$host$$request_uri;
+            }
+            location /mcp {
                 proxy_pass http://api_server;
                 proxy_http_version 1.1;
                 proxy_set_header Connection "";
